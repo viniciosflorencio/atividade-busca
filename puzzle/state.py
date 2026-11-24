@@ -4,6 +4,25 @@ from typing import List, Optional, Tuple
 
 GOAL_STATE = (1, 2, 3, 4, 5, 6, 7, 8, 0)
 
+# Ações = direção em que o espaço vazio se move: (nome, Δlinha, Δcoluna).
+MOVES = (
+    ("UP", -1, 0),
+    ("DOWN", 1, 0),
+    ("LEFT", 0, -1),
+    ("RIGHT", 0, 1),
+)
+
+# Para cada posição do vazio, os movimentos válidos: (ação, posição de destino).
+MOVES_FROM = tuple(
+    tuple(
+        (action, (row + d_row) * 3 + (col + d_col))
+        for action, d_row, d_col in MOVES
+        if 0 <= row + d_row < 3 and 0 <= col + d_col < 3
+    )
+    for row in range(3)
+    for col in range(3)
+)
+
 
 class State:
     """Representa um estado do 8-puzzle como tupla imutável de 9 inteiros (0 = espaço vazio)."""
@@ -26,18 +45,28 @@ class State:
 
     def neighbors(self) -> List["State"]:
         """Retorna os estados filhos válidos a partir deste estado."""
-        # TODO: implemente a geração de estados filhos
-        raise NotImplementedError
+        blank = self.blank_index
+        children = []
+        for action, target in MOVES_FROM[blank]:
+            tiles = list(self.tiles)
+            tiles[blank], tiles[target] = tiles[target], tiles[blank]
+            children.append(State(tuple(tiles), self, action, self.cost + 1))
+        return children
 
     def path(self) -> List["State"]:
         """Retorna a sequência de estados do estado inicial até este."""
-        # TODO: implemente a reconstrução do caminho usando self.parent
-        raise NotImplementedError
+        states = []
+        state: Optional[State] = self
+        while state is not None:
+            states.append(state)
+            state = state.parent
+        states.reverse()
+        return states
 
     def actions(self) -> List[str]:
         """Retorna a sequência de ações do estado inicial até este."""
-        # TODO: implemente usando path()
-        raise NotImplementedError
+        # O estado inicial não tem ação associada, por isso é ignorado.
+        return [state.action for state in self.path()[1:]]
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, State) and self.tiles == other.tiles
